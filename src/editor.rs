@@ -73,7 +73,31 @@ pub trait Editor: Send {
     //       and API agnostic, add a way to ask the GuiContext if the wrapper already provides a
     //       tick function. If it does not, then the Editor implementation must handle this by
     //       itself. This would also need an associated `PREFERRED_FRAME_RATE` constant.
-    // TODO: Host->Plugin resizing
+    /// Whether the host may resize the editor window itself (for instance by letting the user
+    /// drag the window's frame). When this returns `true`, the host will call
+    /// [`check_size_constraint()`][Self::check_size_constraint()] to negotiate sizes and
+    /// [`set_size()`][Self::set_size()] once it has resized the window. Defaults to `false`, in
+    /// which case only the plugin can resize its editor through
+    /// [`GuiContext::request_resize()`][crate::prelude::GuiContext::request_resize()].
+    fn can_resize(&self) -> bool {
+        false
+    }
+
+    /// Adjust a size proposed by the host to one the editor accepts, in logical pixels (the same
+    /// units as [`size()`][Self::size()]). The default accepts any size. Only called when
+    /// [`can_resize()`][Self::can_resize()] returns `true`.
+    fn check_size_constraint(&self, width: u32, height: u32) -> (u32, u32) {
+        (width, height)
+    }
+
+    /// The host has resized the editor window to `width` × `height` logical pixels. Update the
+    /// size reported by [`size()`][Self::size()] and lay the editor out accordingly, then return
+    /// `true`; return `false` to reject the size. Only called when
+    /// [`can_resize()`][Self::can_resize()] returns `true`.
+    fn set_size(&self, width: u32, height: u32) -> bool {
+        let _ = (width, height);
+        false
+    }
 }
 
 /// A raw window handle for platform and GUI framework agnostic editors. This implements
