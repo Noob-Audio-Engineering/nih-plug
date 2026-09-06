@@ -46,9 +46,11 @@ jobs:
             libx11-xcb-dev libxcb1-dev libxcb-dri2-0-dev libxcb-icccm4-dev \
             libxcursor-dev libxkbcommon-dev libxcb-shape0-dev libxcb-xfixes0-dev
 
-      # The crate itself, without the extras that pull in a windowing stack.
+      # Default features, not `--all-features`: the latter turns on `simd`,
+      # which is `#![feature]`-gated and cannot build on stable at all. A
+      # workflow that cannot get past its first step is not a build.
       - name: Check the wrapper crate
-        run: cargo check -p nih_plug --all-features
+        run: cargo check -p nih_plug
 
       # The Audio Unit backend, for both Apple architectures. Only this job
       # can: there is no AudioToolbox anywhere else.
@@ -65,4 +67,9 @@ jobs:
         run: cargo fmt --check -p nih_plug
 
       - name: Clippy
-        run: cargo clippy -p nih_plug --all-features -- -D warnings
+        run: cargo clippy -p nih_plug -- -D warnings
+
+      # The Audio Unit backend again, under clippy, where only it can be seen.
+      - name: Clippy the Audio Unit backend
+        if: matrix.os == 'macos-latest'
+        run: cargo clippy -p nih_plug --features auv2 -- -D warnings
