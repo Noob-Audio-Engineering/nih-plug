@@ -62,6 +62,10 @@ standalone = ["dep:baseview", "dep:clap", "dep:cpal", "dep:jack", "dep:midir", "
 # exists mostly for GPL-compliance reasons, since even if you don't use the VST3
 # wrapper you might otherwise still include a couple (unused) symbols from the
 # `vst3-sys` crate.
+# Enables the `nih_export_auv2!()` macro and the Audio Unit backend. macOS
+# only --- there is no AudioToolbox anywhere else --- and gated so a Linux
+# or Windows build of this crate never has to reason about it.
+auv2 = []
 vst3 = ["dep:vst3-sys"]
 # Add adapters to the Buffer object for reading the channel data to and from
 # `std::simd` vectors. Requires a nightly compiler.

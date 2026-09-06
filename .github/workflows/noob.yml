@@ -1,0 +1,68 @@
+# What this fork has to keep true.
+#
+# Upstream's own workflow was removed by our first patch. This replaces it with
+# something narrower and more useful to us: it checks the things we carry, on
+# the platforms they run on.
+#
+# The macOS job is the important one. The Audio Unit backend is macOS-only, so
+# nothing on a Windows or Linux machine can so much as type-check it --- this
+# is the only place it gets compiled at all, which makes it the development
+# loop and not just a gate.
+name: Noob fork
+
+on:
+  push:
+    branches: [noob, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux
+          - os: windows-latest
+            label: windows
+          - os: macos-latest
+            label: macos
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Linux build dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libgl-dev libjack-jackd2-dev \
+            libx11-xcb-dev libxcb1-dev libxcb-dri2-0-dev libxcb-icccm4-dev \
+            libxcursor-dev libxkbcommon-dev libxcb-shape0-dev libxcb-xfixes0-dev
+
+      # The crate itself, without the extras that pull in a windowing stack.
+      - name: Check the wrapper crate
+        run: cargo check -p nih_plug --all-features
+
+      # The Audio Unit backend, for both Apple architectures. Only this job
+      # can: there is no AudioToolbox anywhere else.
+      - name: Check the Audio Unit backend
+        if: matrix.os == 'macos-latest'
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          for t in aarch64-apple-darwin x86_64-apple-darwin; do
+            echo "--- $t ---"
+            cargo check -p nih_plug --features auv2 --target "$t"
+          done
+
+      - name: Formatting
+        run: cargo fmt --check -p nih_plug
+
+      - name: Clippy
+        run: cargo clippy -p nih_plug --all-features -- -D warnings

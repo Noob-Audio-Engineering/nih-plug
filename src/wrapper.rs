@@ -5,6 +5,10 @@ pub mod clap;
 pub mod state;
 pub(crate) mod util;
 
+// macOS only: there is no AudioToolbox anywhere else, and gating it here
+// means a Linux or Windows build never has to reason about it.
+#[cfg(all(feature = "auv2", target_os = "macos"))]
+pub mod auv2;
 #[cfg(feature = "standalone")]
 pub mod standalone;
 #[cfg(feature = "vst3")]
