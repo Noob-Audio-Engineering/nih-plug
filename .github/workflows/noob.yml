@@ -46,11 +46,21 @@ jobs:
             libx11-xcb-dev libxcb1-dev libxcb-dri2-0-dev libxcb-icccm4-dev \
             libxcursor-dev libxkbcommon-dev libxcb-shape0-dev libxcb-xfixes0-dev
 
-      # Default features, not `--all-features`: the latter turns on `simd`,
-      # which is `#![feature]`-gated and cannot build on stable at all. A
-      # workflow that cannot get past its first step is not a build.
+      # Two toolchains, because the crate genuinely needs both.
+      #
+      # Stable is what ships: every plug-in's release pipeline pins 1.96.0, so
+      # this is the check that corresponds to a bundle somebody installs.
       - name: Check the wrapper crate
         run: cargo check -p nih_plug
+
+      # And nightly for everything, because the `simd` feature is
+      # `#![feature]`-gated and cannot build on stable at all. Left unchecked
+      # it would rot silently --- nobody would find out until they turned it
+      # on --- so it is checked here rather than excluded.
+      - name: Check every feature, on nightly
+        run: |
+          rustup toolchain install nightly --profile minimal
+          cargo +nightly check -p nih_plug --all-features
 
       # The Audio Unit backend, for both Apple architectures. Only this job
       # can: there is no AudioToolbox anywhere else.
@@ -62,6 +72,10 @@ jobs:
             echo "--- $t ---"
             cargo check -p nih_plug --features auv2 --target "$t"
           done
+          # And once with everything on, which on this platform is the only
+          # place the Audio Unit and `simd` are compiled together.
+          rustup toolchain install nightly --profile minimal
+          cargo +nightly check -p nih_plug --all-features --features auv2
 
       - name: Formatting
         run: cargo fmt --check -p nih_plug
