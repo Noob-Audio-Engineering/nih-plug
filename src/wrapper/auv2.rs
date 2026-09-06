@@ -33,6 +33,7 @@
 //! yet, and `auval` is the arbiter: a unit that `auval` passes is one Logic
 //! will load, and nothing else is evidence.
 
+pub mod properties;
 pub mod sys;
 pub mod wrapper;
 
